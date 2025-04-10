@@ -6,9 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,9 +15,8 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.saveable.rememberSaveable
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,108 +26,200 @@ class MainActivity : ComponentActivity() {
                 Drink(
                     "Margarita",
                     33,
-                    "Klasyczny koktajl na bazie tequili, likieru pomarańczowego i soku z limonki. Orzeźwiający, kwaskowaty i doskonały na gorące dni.",
+                    "Klasyczny i orzeźwiający koktajl na bazie tequili, charakteryzujący się idealną równowagą słodyczy likieru pomarańczowego, kwaskowości soku z limonki i mocnego smaku tequili. Podawany tradycyjnie w kieliszku z solnym brzegiem, jest symbolem meksykańskiej fiesty i popularnym wyborem na całym świecie.",
                     R.drawable.rum,
-                    listOf("40 ml tequili", "20 ml likieru pomarańczowego", "20 ml soku z limonki", "Sól", "Lód")
+                    listOf(
+                        "Zwilż brzeg kieliszka do margarity plasterkiem limonki.",
+                        "Wysyp sól na mały talerzyk i obtocz w niej brzeg kieliszka.",
+                        "Do shakera wypełnionego lodem wlej 40 ml tequili, 20 ml likieru pomarańczowego i 20 ml soku z limonki.",
+                        "Mocno wstrząśnij przez około 15-20 sekund, aż shaker będzie dobrze schłodzony.",
+                        "Przelej zawartość shakera do przygotowanego kieliszka z lodem (opcjonalnie bez lodu).",
+                        "Dekoruj plasterkiem limonki."
+                    )
                 ),
                 Drink(
                     "Mojito",
                     14,
-                    "Kubański drink łączący rum, miętę, limonkę, cukier i wodę gazowaną. Delikatny, lekko słodki i niezwykle orzeźwiający, idealny na lato.",
+                    "Pochodzący z Kuby, orzeźwiający drink łączący biały rum z intensywnym aromatem świeżej mięty i kwaskowością limonki. Cukier i woda gazowana dopełniają całości, tworząc idealny napój na gorące dni. Jego prostota i wyrazisty smak sprawiają, że jest ulubieńcem barmanów i miłośników koktajli na całym świecie.",
                     R.drawable.rum,
-                    listOf("40 ml białego rumu", "½ limonki", "2 łyżeczki cukru", "Kilka listków mięty", "Woda gazowana", "Lód kruszony")
+                    listOf(
+                        "Do wysokiej szklanki wrzuć pół limonki pokrojonej na ćwiartki oraz kilka listków mięty.",
+                        "Dodaj 2 łyżeczki cukru (lub syropu cukrowego).",
+                        "Delikatnie ugnieć limonkę z miętą i cukrem muddlerem, aby uwolnić soki i aromat mięty.",
+                        "Wypełnij szklankę lodem do pełna.",
+                        "Wlej 40 ml białego rumu.",
+                        "Dopełnij wodą gazowaną.",
+                        "Delikatnie zamieszaj długą łyżką.",
+                        "Dekoruj gałązką mięty i plasterkiem limonki."
+                    )
                 ),
                 Drink(
                     "Old Fashioned",
                     40,
-                    "Jeden z najstarszych klasycznych koktajli, składający się z bourbonu, cukru, bitteru i lodu. Mocny, aromatyczny i pełen charakteru.",
+                    "Uważany za jeden z najstarszych i najbardziej szanowanych klasycznych koktajli. Jego wyrafinowany charakter opiera się na prostocie połączenia bourbonu (lub whisky żytniej) z subtelną słodyczą cukru, aromatem angostury bitters i odświeżającą nutą skórki pomarańczy. To drink dla koneserów, ceniących głębię smaku i tradycję.",
                     R.drawable.rum,
-                    listOf("50 ml bourbonu", "1 kostka cukru", "Kilka kropel angostury", "Skórka pomarańczowa", "Lód")
+                    listOf(
+                        "Do niskiej, grubej szklanki (tzw. old fashioned glass) włóż kostkę cukru.",
+                        "Skrop kostkę cukru kilkoma kroplami angostury bitters.",
+                        "Dodaj odrobinę wody (około łyżeczki).",
+                        "Rozgnieć cukier z bittersem muddlerem, aż cukier się rozpuści.",
+                        "Dodaj dużą kostkę lodu (lub kilka mniejszych).",
+                        "Wlej 40 ml bourbonu.",
+                        "Mieszaj delikatnie barową łyżką przez około 20-30 sekund, schładzając drink.",
+                        "Wyciśnij olejek ze skórki pomarańczy nad drinkiem, a następnie wrzuć skórkę do szklanki (opcjonalnie)."
+                    )
                 ),
                 Drink(
                     "Negroni",
                     24,
-                    "Włoski aperitif na bazie ginu, Campari i słodkiego wermutu. Gorzki, intensywny i elegancki, idealny jako drink przed kolacją.",
+                    "Elegancki włoski aperitif o wyrazistym, gorzko-ziołowym smaku. Połączenie ginu, Campari i czerwonego wermutu w równych proporcjach tworzy złożony profil smakowy, idealny do pobudzenia apetytu przed posiłkiem. Jego intensywny kolor i prostota przygotowania czynią go popularnym wyborem w barach na całym świecie.",
                     R.drawable.rum,
-                    listOf("30 ml ginu", "30 ml Campari", "30 ml czerwonego wermutu", "Plaster pomarańczy", "Lód")
+                    listOf(
+                        "Do szklanki typu old fashioned wypełnionej lodem wlej 30 ml ginu.",
+                        "Dodaj 30 ml Campari.",
+                        "Wlej 30 ml czerwonego wermutu.",
+                        "Delikatnie zamieszaj barową łyżką przez około 15-20 sekund, aby schłodzić drink.",
+                        "Dekoruj plasterkiem pomarańczy."
+                    )
                 ),
                 Drink(
                     "Pina Colada",
                     13,
-                    "Tropikalny koktajl z rumem, mlekiem kokosowym i sokiem ananasowym. Kremowy, słodki i niezwykle przyjemny, kojarzący się z wakacjami.",
+                    "Słodki i kremowy tropikalny koktajl, który przenosi myślami na słoneczne plaże. Bazuje na białym rumie, bogatym mleku kokosowym i orzeźwiającym soku ananasowym. Zblendowany z lodem tworzy gładką, aksamitną konsystencję. Często dekorowany plasterkiem ananasa i wisienką maraschino, jest kwintesencją wakacyjnego relaksu.",
                     R.drawable.rum,
-                    listOf("40 ml białego rumu", "40 ml mleka kokosowego", "100 ml soku ananasowego", "Kostki lodu", "Plaster ananasa")
+                    listOf(
+                        "Do blendera wrzuć kilka kostek lodu.",
+                        "Wlej 40 ml białego rumu.",
+                        "Dodaj 40 ml mleka kokosowego.",
+                        "Wlej 100 ml soku ananasowego.",
+                        "Blenduj do uzyskania gładkiej, kremowej konsystencji.",
+                        "Przelej do wysokiej szklanki.",
+                        "Dekoruj plasterkiem ananasa i/lub wisienką maraschino."
+                    )
                 ),
                 Drink(
                     "Manhattan",
                     30,
-                    "Klasyczny drink z whisky żytniej, słodkiego wermutu i bitteru. Mocny, wyrafinowany i często serwowany z wiśnią koktajlową.",
+                    "Wyrafinowany i mocny klasyczny drink, którego sercem jest whisky żytnia, uzupełniona słodyczą czerwonego wermutu i aromatyczną nutą angostury bitters. Podawany w schłodzonym kieliszku koktajlowym, często ozdobiony wisienką koktajlową, jest symbolem elegancji i wyrafinowanego gustu. Idealny na spokojny wieczór.",
                     R.drawable.rum,
-                    listOf("50 ml whisky żytniej", "20 ml czerwonego wermutu", "Kilka kropel angostury", "Wiśnia koktajlowa", "Lód")
+                    listOf(
+                        "Do szklanki miksującej wypełnionej lodem wlej 50 ml whisky żytniej.",
+                        "Dodaj 20 ml czerwonego wermutu.",
+                        "Wlej kilka kropel angostury bitters.",
+                        "Mieszaj delikatnie barową łyżką przez około 20-30 sekund, aby dobrze schłodzić drink.",
+                        "Przelej do schłodzonego kieliszka koktajlowego.",
+                        "Dekoruj wisienką koktajlową (opcjonalnie z ogonkiem)."
+                    )
                 ),
                 Drink(
                     "Mai Tai",
                     26,
-                    "Egzotyczny drink tiki, składający się z rumu, soku limonkowego, likieru pomarańczowego i syropu migdałowego. Bogaty w smak, intensywny i owocowy.",
+                    "Egzotyczny i bogaty w smaku drink tiki, który przenosi w świat polinezyjskich przygód. Łączy w sobie ciemny rum z orzeźwiającym sokiem z limonki, słodyczą likieru pomarańczowego i charakterystycznym aromatem syropu migdałowego (orgeat). Podawany na kruszonym lodzie i bogato dekorowany owocami i miętą, jest prawdziwą ucztą dla zmysłów.",
                     R.drawable.rum,
-                    listOf("30 ml jasnego rumu", "30 ml ciemnego rumu", "15 ml likieru pomarańczowego", "15 ml syropu migdałowego (orgeat)", "20 ml soku z limonki", "Lód", "Plaster limonki")
+                    listOf(
+                        "Do shakera wypełnionego lodem wlej 40 ml ciemnego rumu.",
+                        "Dodaj 20 ml soku z limonki.",
+                        "Wlej 15 ml likieru pomarańczowego (np. Curaçao).",
+                        "Dodaj 10 ml syropu migdałowego (Orgeat).",
+                        "Mocno wstrząśnij przez około 15-20 sekund.",
+                        "Przelej (bez lodu ze shakera) do szklanki typu tiki lub old fashioned wypełnionej kruszonym lodem.",
+                        "Dekoruj plasterkiem ananasa, gałązką mięty i/lub wisienką maraschino."
+                    )
                 ),
                 Drink(
                     "Cosmopolitan",
                     27,
-                    "Stylowy koktajl z wódki, likieru pomarańczowego, soku żurawinowego i limonkowego. Orzeźwiający, lekko słodki i kwaskowaty, popularny wśród kobiet.",
+                    "Stylowy i lekko kwaskowy koktajl na bazie wódki cytrynowej, wzbogacony smakiem likieru pomarańczowego, żurawiny i świeżej limonki. Jego różowy kolor i elegancki kieliszek sprawiają, że jest popularnym wyborem na wieczorne wyjścia. Znany z serialu \"Seks w wielkim mieście\", stał się ikoną nowoczesnej kultury koktajlowej.",
                     R.drawable.rum,
-                    listOf("40 ml wódki cytrynowej", "20 ml likieru pomarańczowego", "30 ml soku żurawinowego", "10 ml soku z limonki", "Lód", "Skórka z limonki")
+                    listOf(
+                        "Zwilż brzeg kieliszka koktajlowego plasterkiem limonki.",
+                        "Opcjonalnie obtocz brzeg w cukrze (drobny cukier na talerzyku).",
+                        "Do shakera wypełnionego lodem wlej 40 ml wódki cytrynowej (można użyć zwykłej wódki).",
+                        "Dodaj 15 ml likieru pomarańczowego (np. Cointreau lub Triple Sec).",
+                        "Wlej 30 ml soku żurawinowego (niesłodzonego).",
+                        "Dodaj 10 ml świeżo wyciśniętego soku z limonki.",
+                        "Mocno wstrząśnij przez około 15-20 sekund, aż shaker będzie dobrze schłodzony.",
+                        "Przelej zawartość shakera do przygotowanego kieliszka koktajlowego bez lodu.",
+                        "Dekoruj skórką pomarańczy wyciśniętą nad drinkiem."
+                    )
                 ),
                 Drink(
                     "Long Island Iced Tea",
                     22,
-                    "Potężna mieszanka pięciu alkoholi: wódki, rumu, ginu, tequili i likieru pomarańczowego, dopełniona colą. Zaskakująco łagodny, ale bardzo mocny.",
+                    "Mocny i zdradliwie orzeźwiający koktajl, który mimo swojej nazwy nie zawiera herbaty. Jest to potężna mieszanka wódki, białego rumu, ginu i tequili blanco, z dodatkiem likieru pomarańczowego i coli, która nadaje mu barwę podobną do herbaty. Ze względu na wysoką zawartość alkoholu, należy go spożywać z umiarem.",
                     R.drawable.rum,
-                    listOf("15 ml wódki", "15 ml ginu", "15 ml białego rumu", "15 ml tequili", "15 ml likieru pomarańczowego", "20 ml soku z cytryny", "Top colą", "Lód", "Plaster cytryny")
+                    listOf(
+                        "Do wysokiej szklanki wypełnionej lodem wlej po 20 ml wódki, białego rumu, ginu i tequili blanco.",
+                        "Dodaj 20 ml likieru pomarańczowego (np. Triple Sec).",
+                        "Dopełnij colą (około 100-120 ml), pozostawiając trochę miejsca na górze.",
+                        "Delikatnie zamieszaj długą łyżką.",
+                        "Dekoruj plasterkiem cytryny."
+                    )
                 ),
                 Drink(
                     "Zombie",
                     40,
-                    "Tiki drink z różnymi rodzajami rumu, sokami owocowymi i przyprawami. Bardzo mocny, tropikalny i niezwykle aromatyczny, podawany z dekoracją.",
+                    "Legendarny i bardzo mocny drink tiki, znany ze swojej złożonej receptury i wysokiej zawartości alkoholu. Łączy w sobie różne rodzaje rumu, likiery, soki owocowe i przyprawy, tworząc tajemniczy i egzotyczny smak. Jego nazwa i moc sprawiły, że stał się kultowym wyborem dla poszukiwaczy mocnych wrażeń.",
                     R.drawable.rum,
-                    listOf("30 ml jasnego rumu", "30 ml ciemnego rumu", "30 ml overproof rumu", "15 ml likieru morelowego", "20 ml soku limonkowego", "40 ml soku ananasowego", "15 ml syropu grenadyna", "Angostura", "Lód", "Mięta lub owoce do dekoracji")
+                    listOf(
+                        "Do shakera wypełnionego lodem wlej 30 ml jasnego rumu.",
+                        "Dodaj 30 ml ciemnego rumu.",
+                        "Wlej 20 ml świeżo wyciśniętego soku z limonki.",
+                        "Dodaj 20 ml soku pomarańczowego.",
+                        "Wlej 10 ml grenadiny.",
+                        "Dodaj szczyptę cynamonu.",
+                        "Mocno wstrząśnij przez około 20-30 sekund.",
+                        "Przelej (bez lodu ze shakera) do wysokiej szklanki wypełnionej kruszonym lodem.",
+                        "Dekoruj plasterkiem pomarańczy, wisienką maraschino i/lub gałązką mięty."
+                    )
                 )
             )
+
 
             ListaDrinkow(drinks)
         }
     }
 }
 
-
-
-
-data class Drink(val nazwa: String, val procenty: Int, val opis: String, val imageRes: Int, val skladniki: List<String>)
+data class Drink(
+    val nazwa: String,
+    val procenty: Int,
+    val opis: String,
+    val imageRes: Int,
+    val skladniki: List<String>
+)
 
 @Composable
 fun ListaDrinkow(drinki: List<Drink>) {
     var selectedDrink by remember { mutableStateOf<Drink?>(null) }
-
-    val scrollState = rememberScrollState()
+    var showRecipe by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(scrollState),
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        drinki.forEach { drink ->
-            MojDrink(drink) { selectedDrink = drink }
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(drinki.size) { index ->
+                MojDrink(drinki[index]) {
+                    selectedDrink = drinki[index]
+                    showRecipe = false
+                }
+            }
         }
     }
 
     selectedDrink?.let { drink ->
-        DrinkDetailsDialog(drink) { selectedDrink = null }
+        DrinkDetailsDialog(drink, onDismiss = { selectedDrink = null }, onShowRecipe = { showRecipe = true })
+    }
+
+    if (showRecipe) {
+        selectedDrink?.let { drink ->
+            PrzepisDialog(drink) { showRecipe = false }
+        }
     }
 }
-
 
 @Composable
 fun MojDrink(drink: Drink, onClick: () -> Unit) {
@@ -152,15 +241,16 @@ fun MojDrink(drink: Drink, onClick: () -> Unit) {
     }
 }
 
-
 @Composable
-fun DrinkDetailsDialog(drink: Drink, onDismiss: () -> Unit) {
-    var showRecipe by remember { mutableStateOf(false) }
-
+fun DrinkDetailsDialog(drink: Drink, onDismiss: () -> Unit, onShowRecipe: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
-        Card(modifier = Modifier.padding(16.dp)) {
+        Card(
+            modifier = Modifier
+                .padding(16.dp)
+        ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 val image: Painter = painterResource(id = drink.imageRes)
@@ -172,49 +262,62 @@ fun DrinkDetailsDialog(drink: Drink, onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(text = drink.nazwa, style = MaterialTheme.typography.headlineMedium)
                 Text(text = "${drink.procenty}% alkoholu", style = MaterialTheme.typography.bodyMedium)
-                Text(text = drink.opis)
-                Spacer(modifier = Modifier.height(16.dp))
-                Row {
-                    Button(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                        Text("Zamknij")
-                    }
+                Text(text = drink.opis) // Tekst opisu bez ograniczeń
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Button(onClick = onDismiss) { Text("Zamknij") }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Button(onClick = { showRecipe = true }, modifier = Modifier.weight(1f)) {
-                        Text("Przepis na drink")
-                    }
+                    Button(onClick = onShowRecipe) { Text("Przepis na drink") }
                 }
             }
         }
     }
+}
 
-    if (showRecipe) {
-        DrinkRecipeDialog(drink = drink, onDismiss = { showRecipe = false })
+@Composable
+fun PrzepisDialog(drink: Drink, onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(modifier = Modifier.padding(16.dp)) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Składniki:", style = MaterialTheme.typography.titleLarge)
+                drink.skladniki.forEach { skladnik ->
+                    Text("- $skladnik")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Minutnik()
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = onDismiss) { Text("Zamknij") }
+            }
+        }
     }
 }
 
 @Composable
-fun DrinkRecipeDialog(drink: Drink, onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(modifier = Modifier.padding(16.dp)) {
-            Column(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Przepis na ${drink.nazwa}",
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                drink.skladniki.forEach { skladnik ->
-                    Text(text = "• $skladnik", style = MaterialTheme.typography.bodyMedium)
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onDismiss) {
-                    Text("Zamknij przepis")
-                }
-            }
+fun Minutnik() {
+    var czas by rememberSaveable { mutableStateOf(0) }
+    var isRunning by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(isRunning) {
+        while (isRunning) {
+            delay(1000)
+            czas++
+        }
+    }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("Czas: ${czas}s", style = MaterialTheme.typography.headlineSmall)
+        Row(horizontalArrangement = Arrangement.SpaceEvenly) {
+            Button(onClick = { isRunning = true }) { Text("Start") }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { isRunning = false }) { Text("Stop") }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = {
+                isRunning = false
+                czas = 0
+            }) { Text("Wyzeruj") }
         }
     }
 }
