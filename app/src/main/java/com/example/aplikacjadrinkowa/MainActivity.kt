@@ -6,6 +6,7 @@ import androidx.compose.material3.Icon
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -26,16 +27,27 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -106,33 +118,36 @@ private fun DrinkAppTheme(
 private fun DrinkAppContent() {
     var selectedDrinkName by rememberSaveable { mutableStateOf<String?>(null) }
     var showRecipe by rememberSaveable { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
 
     val selectedDrink = drinks.firstOrNull { it.name == selectedDrinkName }
+    val filteredDrinks = drinks.filter { it.name.contains(searchQuery, ignoreCase = true) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        SearchBar(searchQuery, { searchQuery = it })
-        DrinkList(
-            drinks = drinks.filter { it.name.contains(searchQuery, true) },
-            onDrinkClick = { selectedDrinkName = it.name }
-        )
-    }
-
-    selectedDrink?.let { drink ->
-        DrinkDetailsDialog(
-            drink = drink,
-            onDismiss = { selectedDrinkName = null },
-            onShowRecipe = { showRecipe = true }
-        )
-    }
-
-    if (showRecipe) {
-        selectedDrink?.let { drink ->
-            RecipeDialog(
+    AnimatedContent(targetState = selectedDrink) { drink ->
+        if (drink == null) {
+            Column {
+                SearchBar(searchQuery) { searchQuery = it }
+                DrinkList(
+                    drinks = filteredDrinks,
+                    onDrinkClick = { clickedDrink ->
+                        selectedDrinkName = clickedDrink.name
+                    }
+                )
+            }
+        } else {
+            DrinkDetailsDialog(
                 drink = drink,
-                onDismiss = { showRecipe = false }
+                onDismiss = { selectedDrinkName = null },
+                onShowRecipe = { showRecipe = true }
             )
         }
+    }
+
+    if (showRecipe && selectedDrink != null) {
+        RecipeDialog(
+            drink = selectedDrink,
+            onDismiss = { showRecipe = false }
+        )
     }
 }
 
@@ -165,25 +180,56 @@ private fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
 
 @Composable
 private fun DrinkList(drinks: List<Drink>, onDrinkClick: (Drink) -> Unit) {
-    LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
-        items(drinks) { drink ->
-            DrinkListItem(drink) { onDrinkClick(drink) }
+    var isListVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(drinks) { // Uruchom po załadowaniu drinków
+        isListVisible = true
+    }
+
+    AnimatedVisibility(
+        visible = isListVisible,
+        enter = fadeIn(),
+        exit = fadeOut()
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+        ) {
+            items(drinks) { drink ->
+                DrinkListItem(drink) { onDrinkClick(drink) }
+            }
         }
     }
 }
 
 @Composable
 private fun DrinkListItem(drink: Drink, onClick: () -> Unit) {
+    var isCurrentlyFavorite by rememberSaveable { mutableStateOf(drink.isFavorite) }
+    var pressed by remember { mutableStateOf(false) } // Stan naciśnięcia
+    val scale by animateFloatAsState(if (pressed) 0.98f else 1f, label = "CardScaleAnimation") // Animacja skali
+
+
     Card(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .scale(scale) // <--- Zastosuj skalę
+            .pointerInput(Unit) { // <--- Dodaj obsługę dotyku
+                detectTapGestures(
+                    onPress = {
+                        pressed = true
+                        tryAwaitRelease()
+                        pressed = false
+                    },
+                    // onTap = { onClick() } // onClick jest już w Card, więc nie dubluj, chyba że potrzebujesz specjalnej logiki
+                )
+            },
         elevation = CardDefaults.cardElevation(8.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface,
-            contentColor   = MaterialTheme.colorScheme.onSurface
+            contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
         Row(
@@ -213,6 +259,25 @@ private fun DrinkListItem(drink: Drink, onClick: () -> Unit) {
                         text = "${drink.percent}% · ${drink.description}",
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 2
+                    )
+                }
+            }
+            IconButton(onClick = {
+                isCurrentlyFavorite = !isCurrentlyFavorite
+                drink.isFavorite = isCurrentlyFavorite
+            }) {
+                AnimatedContent(
+                    targetState = isCurrentlyFavorite,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(durationMillis = 200)) togetherWith
+                                fadeOut(animationSpec = tween(durationMillis = 200))
+                    },
+                    label = "FavoriteIconAnimation"
+                ) { targetState ->
+                    Icon(
+                        imageVector = if (targetState) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = if (targetState) "Remove from Favorites" else "Add to Favorites",
+                        tint = PrimaryColor
                     )
                 }
             }
@@ -358,31 +423,33 @@ private fun TimerComponent() {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            FilledTonalButton(
-                onClick = { isRunning = !isRunning },
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = if (isRunning) TertiaryColor else MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Icon(
-                    imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = null
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(if (isRunning) "Pauza" else "Start")
+            IconButton(onClick = { isRunning = !isRunning }) {
+                AnimatedContent(
+                    targetState = isRunning,
+                    label = "PlayPauseIconAnimation"
+                ) { targetIsRunning ->
+                    Icon(
+                        imageVector = if (targetIsRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (targetIsRunning) "Pause" else "Play",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
-            OutlinedButton(
-                onClick = { time = 0 },
-                border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.dp)
-            ) {
-                Icon(Icons.Default.Refresh, null)
-                Spacer(Modifier.width(4.dp))
-                Text("Reset")
+            IconButton(onClick = {
+                time = 0
+                isRunning = false
+            }) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Reset",
+                    tint = MaterialTheme.colorScheme.secondary
+                )
             }
         }
     }
 }
+
 
 
 
@@ -392,7 +459,8 @@ data class Drink(
     val percent: Int,
     val description: String,
     val imageRes: Int,
-    val ingredients: List<String>
+    val ingredients: List<String>,
+    var isFavorite: Boolean = false // Add this line
 ) : Parcelable
 
 private val drinks = listOf(
