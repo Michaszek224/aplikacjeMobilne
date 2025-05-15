@@ -56,7 +56,7 @@ class MainActivity : ComponentActivity() {
             DrinkAppTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background // ⬅️ Tło aplikacji
+                    color = MaterialTheme.colorScheme.background // Tło aplikacji
                 ) {
                     DrinkAppContent()
                 }
@@ -67,8 +67,8 @@ class MainActivity : ComponentActivity() {
 
 private val PrimaryColor = Color(0xFFFF9F0D)      // główny pomarańcz
 private val OnPrimaryColor = Color.White          // biały tekst na przyciskach
-private val SecondaryColor = Color(0xFFC77600)    // ciemniejszy pomarańcz / bursztyn
-private val TertiaryColor = Color(0xFFFFE0B2)      // ciepły beż / złoty akcent
+private val SecondaryColor = Color(0xFFC77600)    // ciemniejszy pomarańcz
+private val TertiaryColor = Color(0xFFFFE0B2)      // złoty akcent
 private val BackgroundColor = Color(0xFFFFF8F0)    // bardzo jasny ciepły krem
 private val SurfaceColor = Color.White             // biel dla kart/dialogów
 private val OnSurfaceColor = Color(0xFF333333)     // ciemny szary tekst
@@ -80,7 +80,7 @@ private fun DrinkAppTheme(
 ) {
     //ciemny motyw:
     val darkColors = darkColorScheme(
-        primary   = PrimaryColor,   // zachowujemy pomarańcz
+        primary   = PrimaryColor,
         onPrimary = OnPrimaryColor,
         secondary = SecondaryColor,
         tertiary  = TertiaryColor,
@@ -214,15 +214,14 @@ private fun DrinkListItem(drink: Drink, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .scale(scale) // <--- Zastosuj skalę
-            .pointerInput(Unit) { // <--- Dodaj obsługę dotyku
+            .scale(scale)
+            .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
                         pressed = true
                         tryAwaitRelease()
                         pressed = false
                     },
-                    // onTap = { onClick() } // onClick jest już w Card, więc nie dubluj, chyba że potrzebujesz specjalnej logiki
                 )
             },
         elevation = CardDefaults.cardElevation(8.dp),
@@ -460,7 +459,7 @@ data class Drink(
     val description: String,
     val imageRes: Int,
     val ingredients: List<String>,
-    var isFavorite: Boolean = false // Add this line
+    var isFavorite: Boolean = false
 ) : Parcelable
 
 private val drinks = listOf(
