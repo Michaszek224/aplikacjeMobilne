@@ -7,6 +7,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -41,34 +42,59 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             DrinkAppTheme {
-                DrinkAppContent()
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background // ⬅️ Tło aplikacji
+                ) {
+                    DrinkAppContent()
+                }
             }
         }
     }
 }
 
-private val PrimaryColor = Color(0xFF2A4D69)
-private val SecondaryColor = Color(0xFF4B86B4)
-private val TertiaryColor = Color(0xFF63A4FF)
-private val BackgroundColor = Color(0xFFF0F4F8)
+private val PrimaryColor = Color(0xFFFF9F0D)      // główny pomarańcz
+private val OnPrimaryColor = Color.White          // biały tekst na przyciskach
+private val SecondaryColor = Color(0xFFC77600)    // ciemniejszy pomarańcz / bursztyn
+private val TertiaryColor = Color(0xFFFFE0B2)      // ciepły beż / złoty akcent
+private val BackgroundColor = Color(0xFFFFF8F0)    // bardzo jasny ciepły krem
+private val SurfaceColor = Color.White             // biel dla kart/dialogów
+private val OnSurfaceColor = Color(0xFF333333)     // ciemny szary tekst
 
 @Composable
-private fun DrinkAppTheme(content: @Composable () -> Unit) {
+private fun DrinkAppTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
+    //ciemny motyw:
+    val darkColors = darkColorScheme(
+        primary   = PrimaryColor,   // zachowujemy pomarańcz
+        onPrimary = OnPrimaryColor,
+        secondary = SecondaryColor,
+        tertiary  = TertiaryColor,
+        background = Color(0xFF1E1E1E),
+        surface    = Color(0xFF1E1E1E),
+        onSurface  = Color(0xFFEEEEEE),
+    )
+    //jasny motyw:
+    val lightColors = lightColorScheme(
+        primary   = PrimaryColor,
+        onPrimary = OnPrimaryColor,
+        secondary = SecondaryColor,
+        tertiary  = TertiaryColor,
+        background = BackgroundColor,
+        surface    = SurfaceColor,
+        onSurface  = OnSurfaceColor
+    )
+
     MaterialTheme(
-        colorScheme = lightColorScheme(
-            primary = PrimaryColor,
-            secondary = SecondaryColor,
-            tertiary = TertiaryColor,
-            surface = Color.White,
-            background = BackgroundColor
-        ),
+        colorScheme = if (darkTheme) darkColors else lightColors,
         typography = Typography(
             titleLarge = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
             ),
             bodyMedium = MaterialTheme.typography.bodyMedium.copy(
-                color = Color.DarkGray,
                 fontSize = 14.sp
             )
         ),
@@ -125,10 +151,10 @@ private fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
         placeholder = { Text("Szukaj drinków...") },
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
         colors = TextFieldDefaults.colors(
-            focusedContainerColor = Color.White,
-            unfocusedContainerColor = Color.White,
-            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-            focusedLeadingIconColor = MaterialTheme.colorScheme.primary
+            focusedContainerColor   = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedIndicatorColor   = MaterialTheme.colorScheme.primary,
+            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
         ),
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier
@@ -154,7 +180,11 @@ private fun DrinkListItem(drink: Drink, onClick: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         elevation = CardDefaults.cardElevation(8.dp),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor   = MaterialTheme.colorScheme.onSurface
+        )
     ) {
         Row(
             modifier = Modifier
@@ -175,10 +205,10 @@ private fun DrinkListItem(drink: Drink, onClick: () -> Unit) {
                 Text(
                     text = drink.name,
                     style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                CompositionLocalProvider(LocalContentColor provides Color.DarkGray) {
+                CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)) {
                     Text(
                         text = "${drink.percent}% · ${drink.description}",
                         style = MaterialTheme.typography.bodyMedium,
@@ -200,7 +230,11 @@ private fun DrinkDetailsDialog(drink: Drink, onDismiss: () -> Unit, onShowRecipe
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .padding(16.dp),
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor   = MaterialTheme.colorScheme.onSurface
+            )
         ) {
             Column(
                 modifier = Modifier
@@ -253,7 +287,8 @@ private fun DrinkDetailsDialog(drink: Drink, onDismiss: () -> Unit, onShowRecipe
                     Button(
                         onClick = onShowRecipe,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
                         Text("Pokaż przepis")
@@ -267,6 +302,9 @@ private fun DrinkDetailsDialog(drink: Drink, onDismiss: () -> Unit, onShowRecipe
 @Composable
 private fun RecipeDialog(drink: Drink, onDismiss: () -> Unit) {
     AlertDialog(
+        containerColor = MaterialTheme.colorScheme.surface,
+        textContentColor = MaterialTheme.colorScheme.onSurface,
+        titleContentColor = MaterialTheme.colorScheme.onSurface,
         onDismissRequest = onDismiss,
         title = { Text("Przepis na ${drink.name}") },
         text = {
