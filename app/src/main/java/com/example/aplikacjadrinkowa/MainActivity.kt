@@ -1,6 +1,7 @@
 package com.example.aplikacjadrinkowa
 
-
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 import androidx.compose.material3.Icon
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,6 +29,12 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.runtime.saveable.rememberSaveable
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,14 +47,30 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private val PrimaryColor = Color(0xFF2A4D69)
+private val SecondaryColor = Color(0xFF4B86B4)
+private val TertiaryColor = Color(0xFF63A4FF)
+private val BackgroundColor = Color(0xFFF0F4F8)
+
 @Composable
 private fun DrinkAppTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = lightColorScheme(
-            primary = Color(0xFF1EB980),
-            secondary = Color(0xFF98FF98),
-            tertiary = Color(0xFF7BC678),
-            background = Color(0xFFDDFFEE)
+            primary = PrimaryColor,
+            secondary = SecondaryColor,
+            tertiary = TertiaryColor,
+            surface = Color.White,
+            background = BackgroundColor
+        ),
+        typography = Typography(
+            titleLarge = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            ),
+            bodyMedium = MaterialTheme.typography.bodyMedium.copy(
+                color = Color.DarkGray,
+                fontSize = 14.sp
+            )
         ),
         content = content
     )
@@ -54,22 +78,24 @@ private fun DrinkAppTheme(content: @Composable () -> Unit) {
 
 @Composable
 private fun DrinkAppContent() {
-    var selectedDrink by remember { mutableStateOf<Drink?>(null) }
-    var showRecipe by remember { mutableStateOf(false) }
+    var selectedDrinkName by rememberSaveable { mutableStateOf<String?>(null) }
+    var showRecipe by rememberSaveable { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+
+    val selectedDrink = drinks.firstOrNull { it.name == selectedDrinkName }
 
     Column(modifier = Modifier.fillMaxSize()) {
         SearchBar(searchQuery, { searchQuery = it })
         DrinkList(
             drinks = drinks.filter { it.name.contains(searchQuery, true) },
-            onDrinkClick = { selectedDrink = it }
+            onDrinkClick = { selectedDrinkName = it.name }
         )
     }
 
     selectedDrink?.let { drink ->
         DrinkDetailsDialog(
             drink = drink,
-            onDismiss = { selectedDrink = null },
+            onDismiss = { selectedDrinkName = null },
             onShowRecipe = { showRecipe = true }
         )
     }
@@ -86,11 +112,25 @@ private fun DrinkAppContent() {
 
 @Composable
 private fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
-    TextField(
+    OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        leadingIcon = { Icon(Icons.Default.Search, "Search") },
-        placeholder = { Text("Wyszukaj drinka...") },
+        leadingIcon = {
+            Icon(
+                Icons.Default.Search,
+                "Search",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        placeholder = { Text("Szukaj drinków...") },
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color.White,
+            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+            focusedLeadingIconColor = MaterialTheme.colorScheme.primary
+        ),
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
@@ -112,31 +152,39 @@ private fun DrinkListItem(drink: Drink, onClick: () -> Unit) {
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        elevation = CardDefaults.cardElevation(8.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
                 painter = painterResource(id = drink.imageRes),
                 contentDescription = drink.name,
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(120.dp)
                     .clip(RoundedCornerShape(12.dp)),
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(16.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = drink.name,
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary
                 )
-                Text(
-                    text = "${drink.percent}% · ${drink.description.take(40)}...",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Spacer(modifier = Modifier.height(4.dp))
+                CompositionLocalProvider(LocalContentColor provides Color.DarkGray) {
+                    Text(
+                        text = "${drink.percent}% · ${drink.description}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2
+                    )
+                }
             }
         }
     }
@@ -144,37 +192,76 @@ private fun DrinkListItem(drink: Drink, onClick: () -> Unit) {
 
 @Composable
 private fun DrinkDetailsDialog(drink: Drink, onDismiss: () -> Unit, onShowRecipe: () -> Unit) {
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(drink.name) },
-        text = {
-            Column {
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .padding(16.dp),
+            shape = RoundedCornerShape(24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp)
+            ) {
                 Image(
                     painter = painterResource(id = drink.imageRes),
                     contentDescription = null,
                     modifier = Modifier
-                        .height(200.dp)
+                        .height(240.dp)
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp)),
+                        .clip(RoundedCornerShape(16.dp)),
                     contentScale = ContentScale.Crop
                 )
+
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("${drink.percent}% alkoholu")
+
+                Text(
+                    text = drink.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(drink.description)
-            }
-        },
-        confirmButton = {
-            Button(onClick = onShowRecipe) {
-                Text("Pokaż przepis")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Zamknij")
+
+                Text(
+                    text = "Zawartość alkoholu: ${drink.percent}%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = drink.description,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Anuluj")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = onShowRecipe,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text("Pokaż przepis")
+                    }
+                }
             }
         }
-    )
+    }
 }
 
 @Composable
@@ -204,54 +291,71 @@ private fun RecipeDialog(drink: Drink, onDismiss: () -> Unit) {
 
 @Composable
 private fun TimerComponent() {
-    var time by remember { mutableIntStateOf(0) }
-    var isRunning by remember { mutableStateOf(false) }
+    var time by rememberSaveable { mutableIntStateOf(0) }
+    var isRunning by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(isRunning) {
-        while (isRunning) {
-            delay(1000)
-            time++
+        if (isRunning) {
+            while (true) {
+                delay(1000)
+                time++
+            }
         }
     }
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Czas: ${time}s", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = String.format("%02d:%02d", time / 60, time % 60),
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = 32.sp,
+                color = MaterialTheme.colorScheme.primary
+            ),
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            FilledTonalButton(
                 onClick = { isRunning = !isRunning },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = if (isRunning) TertiaryColor else MaterialTheme.colorScheme.primary
                 )
             ) {
                 Icon(
                     imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = null
                 )
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(Modifier.width(4.dp))
                 Text(if (isRunning) "Pauza" else "Start")
             }
-            Button(
+
+            OutlinedButton(
                 onClick = { time = 0 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                )
+                border = ButtonDefaults.outlinedButtonBorder.copy(width = 1.dp)
             ) {
                 Icon(Icons.Default.Refresh, null)
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(Modifier.width(4.dp))
                 Text("Reset")
             }
         }
     }
 }
 
+
+
+@Parcelize
 data class Drink(
     val name: String,
     val percent: Int,
     val description: String,
     val imageRes: Int,
     val ingredients: List<String>
-)
+) : Parcelable
 
 private val drinks = listOf(
     Drink(
