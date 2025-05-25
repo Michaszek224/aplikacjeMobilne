@@ -5,18 +5,15 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 data class Drink(
-    // Dodajemy ID dla łatwiejszej identyfikacji, chociaż nazwa jest tu kluczem w bazie ulubionych
-    val id: Int, // Możesz użyć UUID.randomUUID().toString() dla unikalnych stringów
+    val id: Int,
     val name: String,
     val percent: Int,
     val description: String,
     val imageRes: Int,
     val ingredients: List<String>,
-    var isFavorite: Boolean = false // Ten stan będzie teraz odzwierciedlał dane z bazy
+    var isFavorite: Boolean = false
 ) : Parcelable
 
-// Zaktualizuj listę drinks, dodając ID
-// Możesz użyć `System.identityHashCode(this)` lub po prostu kolejne liczby
 val drinks = listOf(
     Drink(
         1, // ID
