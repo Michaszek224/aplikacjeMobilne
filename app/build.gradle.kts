@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("kotlin-parcelize")
+    kotlin("kapt")
 }
 
 android {
@@ -67,4 +68,15 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     implementation(libs.androidx.runtime.saveable)
+
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+
+    kapt(libs.androidx.room.compiler)
+
+
+    implementation(libs.androidx.navigation.compose.v277)
+
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+
 }

@@ -1,13 +1,18 @@
 package com.example.aplikacjadrinkowa
 
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
-import androidx.compose.material3.Icon
+// Importy ... (dodaj te, które będą potrzebne)
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -16,54 +21,55 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.* // Menu, Favorite, PlayArrow, Pause, Refresh, Search
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.tween
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.aplikacjadrinkowa.uii.DrinkListType
+import com.example.aplikacjadrinkowa.uii.DrinkViewModelFactory
+import com.example.aplikacjadrinkowa.uii.DrinkViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            // Uzyskanie ViewModelu
+            val app = LocalContext.current.applicationContext as MyDrinkApp
+            val viewModel: DrinkViewModel = viewModel(
+                factory = DrinkViewModelFactory(app.repository)
+            )
             DrinkAppTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background // Tło aplikacji
+                    color = MaterialTheme.colorScheme.background
                 ) {
-                    DrinkAppContent()
+                    DrinkAppScaffold(viewModel)
                 }
             }
         }
     }
 }
+
 
 private val PrimaryColor = Color(0xFFFF9F0D)      // główny pomarańcz
 private val OnPrimaryColor = Color.White          // biały tekst na przyciskach
@@ -114,40 +120,122 @@ private fun DrinkAppTheme(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DrinkAppContent() {
-    var selectedDrinkName by rememberSaveable { mutableStateOf<String?>(null) }
-    var showRecipe by rememberSaveable { mutableStateOf(false) }
-    var searchQuery by rememberSaveable { mutableStateOf("") }
+private fun DrinkAppScaffold(viewModel: DrinkViewModel) {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    val uiState by viewModel.uiState.collectAsState()
 
-    val selectedDrink = drinks.firstOrNull { it.name == selectedDrinkName }
-    val filteredDrinks = drinks.filter { it.name.contains(searchQuery, ignoreCase = true) }
+    var selectedDrinkForDetails by rememberSaveable { mutableStateOf<Drink?>(null) }
+    var showRecipeDialog by rememberSaveable { mutableStateOf(false) }
 
-    AnimatedContent(targetState = selectedDrink) { drink ->
-        if (drink == null) {
-            Column {
-                SearchBar(searchQuery) { searchQuery = it }
-                DrinkList(
-                    drinks = filteredDrinks,
-                    onDrinkClick = { clickedDrink ->
-                        selectedDrinkName = clickedDrink.name
-                    }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Spacer(Modifier.height(12.dp))
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Filled.List, contentDescription = "Wszystkie drinki") },
+                    label = { Text("Wszystkie drinki") },
+                    selected = uiState.currentListType == DrinkListType.ALL,
+                    onClick = {
+                        viewModel.showAllDrinks()
+                        scope.launch { drawerState.close() }
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                NavigationDrawerItem(
+                    icon = { Icon(Icons.Filled.Favorite, contentDescription = "Ulubione drinki") },
+                    label = { Text("Ulubione drinki") },
+                    selected = uiState.currentListType == DrinkListType.FAVORITES,
+                    onClick = {
+                        viewModel.showFavoriteDrinks()
+                        scope.launch { drawerState.close() }
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                 )
             }
-        } else {
-            DrinkDetailsDialog(
-                drink = drink,
-                onDismiss = { selectedDrinkName = null },
-                onShowRecipe = { showRecipe = true }
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            when (uiState.currentListType) {
+                                DrinkListType.ALL -> "Wszystkie Drinki"
+                                DrinkListType.FAVORITES -> "Ulubione Drinki"
+                            }
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Filled.Menu, contentDescription = "Menu")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                )
+            }
+        ) { paddingValues ->
+            DrinkAppContent(
+                modifier = Modifier.padding(paddingValues),
+                viewModel = viewModel,
+                onDrinkClick = { drink -> selectedDrinkForDetails = drink },
             )
+
+            // Dialogi poza głównym contentem, aby były na wierzchu
+            selectedDrinkForDetails?.let { drink ->
+                DrinkDetailsDialog(
+                    drink = drink, // Przekazujemy aktualny stan drinka z UI state
+                    onDismiss = { selectedDrinkForDetails = null },
+                    onShowRecipe = { showRecipeDialog = true }
+                )
+            }
+
+            if (showRecipeDialog && selectedDrinkForDetails != null) {
+                RecipeDialog(
+                    drink = selectedDrinkForDetails!!,
+                    onDismiss = { showRecipeDialog = false }
+                )
+            }
         }
     }
+}
 
-    if (showRecipe && selectedDrink != null) {
-        RecipeDialog(
-            drink = selectedDrink,
-            onDismiss = { showRecipe = false }
+
+@Composable
+private fun DrinkAppContent(
+    modifier: Modifier = Modifier,
+    viewModel: DrinkViewModel,
+    onDrinkClick: (Drink) -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    Column(modifier = modifier.fillMaxSize()) {
+        SearchBar(
+            query = uiState.searchQuery,
+            onQueryChange = { viewModel.setSearchQuery(it) }
         )
+        if (uiState.displayedDrinks.isEmpty() && uiState.searchQuery.isNotEmpty()) {
+            Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                Text("Brak drinków pasujących do wyszukiwania.")
+            }
+        } else if (uiState.displayedDrinks.isEmpty() && uiState.currentListType == DrinkListType.FAVORITES) {
+            Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+                Text("Nie masz jeszcze żadnych ulubionych drinków.")
+            }
+        }
+        else {
+            DrinkList(
+                drinks = uiState.displayedDrinks,
+                onDrinkClick = onDrinkClick,
+                onToggleFavorite = { drink -> viewModel.toggleFavorite(drink) }
+            )
+        }
     }
 }
 
@@ -166,9 +254,9 @@ private fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
         placeholder = { Text("Szukaj drinków...") },
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
         colors = TextFieldDefaults.colors(
-            focusedContainerColor   = MaterialTheme.colorScheme.surface,
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
             unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            focusedIndicatorColor   = MaterialTheme.colorScheme.primary,
+            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
             focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
         ),
         shape = RoundedCornerShape(16.dp),
@@ -179,10 +267,14 @@ private fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
 }
 
 @Composable
-private fun DrinkList(drinks: List<Drink>, onDrinkClick: (Drink) -> Unit) {
+private fun DrinkList(
+    drinks: List<Drink>,
+    onDrinkClick: (Drink) -> Unit,
+    onToggleFavorite: (Drink) -> Unit
+) {
     var isListVisible by remember { mutableStateOf(false) }
 
-    LaunchedEffect(drinks) { // Uruchom po załadowaniu drinków
+    LaunchedEffect(drinks) {
         isListVisible = true
     }
 
@@ -193,21 +285,27 @@ private fun DrinkList(drinks: List<Drink>, onDrinkClick: (Drink) -> Unit) {
     ) {
         LazyColumn(
             modifier = Modifier
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 0.dp)
         ) {
-            items(drinks) { drink ->
-                DrinkListItem(drink) { onDrinkClick(drink) }
+            items(drinks, key = { it.id }) { drink ->
+                DrinkListItem(
+                    drink = drink,
+                    onClick = { onDrinkClick(drink) },
+                    onToggleFavorite = { onToggleFavorite(drink) }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun DrinkListItem(drink: Drink, onClick: () -> Unit) {
-    var isCurrentlyFavorite by rememberSaveable { mutableStateOf(drink.isFavorite) }
-    var pressed by remember { mutableStateOf(false) } // Stan naciśnięcia
-    val scale by animateFloatAsState(if (pressed) 0.98f else 1f, label = "CardScaleAnimation") // Animacja skali
-
+private fun DrinkListItem(
+    drink: Drink,
+    onClick: () -> Unit,
+    onToggleFavorite: () -> Unit
+) {
+    var pressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(if (pressed) 0.98f else 1f, label = "CardScaleAnimation")
 
     Card(
         onClick = onClick,
@@ -261,12 +359,9 @@ private fun DrinkListItem(drink: Drink, onClick: () -> Unit) {
                     )
                 }
             }
-            IconButton(onClick = {
-                isCurrentlyFavorite = !isCurrentlyFavorite
-                drink.isFavorite = isCurrentlyFavorite
-            }) {
+            IconButton(onClick = onToggleFavorite) {
                 AnimatedContent(
-                    targetState = isCurrentlyFavorite,
+                    targetState = drink.isFavorite,
                     transitionSpec = {
                         fadeIn(animationSpec = tween(durationMillis = 200)) togetherWith
                                 fadeOut(animationSpec = tween(durationMillis = 200))
@@ -390,7 +485,6 @@ private fun RecipeDialog(drink: Drink, onDismiss: () -> Unit) {
         }
     )
 }
-
 @Composable
 private fun TimerComponent() {
     var time by rememberSaveable { mutableIntStateOf(0) }
@@ -448,131 +542,3 @@ private fun TimerComponent() {
         }
     }
 }
-
-
-
-
-@Parcelize
-data class Drink(
-    val name: String,
-    val percent: Int,
-    val description: String,
-    val imageRes: Int,
-    val ingredients: List<String>,
-    var isFavorite: Boolean = false
-) : Parcelable
-
-private val drinks = listOf(
-    Drink(
-        "Margarita",
-        33,
-        "Klasyczny koktajl na bazie tequili z likierem pomarańczowym i limonką. Symbol meksykańskiej fiesty.",
-        R.drawable.marg,
-        listOf(
-            "Zwilż brzeg kieliszka limonką, obtocz solą.",
-            "W shakerze z lodem zmieszaj tequilę, likier i sok z limonki.",
-            "Wstrząśnij, przelej do kieliszka z lodem.",
-            "Dekoruj limonką."
-        )
-    ),
-    Drink(
-        "Mojito",
-        14,
-        "Orzeźwiający kubański drink z białym rumem, miętą i limonką. Idealny na gorące dni.",
-        R.drawable.moijto,
-        listOf(
-            "W szklance ugnieć limonkę z miętą i cukrem.",
-            "Dodaj lód, rum i dopełnij wodą gazowaną.",
-            "Zamieszaj, udekoruj miętą i limonką."
-        )
-    ),
-    Drink(
-        "Old Fashioned",
-        40,
-        "Klasyczny koktajl z bourbonu (lub whisky żytniej), cukru i angostury bitters. Dla koneserów głębi smaku.",
-        R.drawable.old,
-        listOf(
-            "W szklance rozpuść cukier z bittersem i wodą.",
-            "Dodaj lód i bourbon.",
-            "Mieszaj, udekoruj skórką pomarańczy."
-        )
-    ),
-    Drink(
-        "Negroni",
-        24,
-        "Włoski aperitif o gorzko-ziołowym smaku z ginu, Campari i czerwonego wermutu. Pobudza apetyt.",
-        R.drawable.negr,
-        listOf(
-            "W szklance z lodem zmieszaj gin, Campari i wermut.",
-            "Delikatnie zamieszaj.",
-            "Dekoruj plasterkiem pomarańczy."
-        )
-    ),
-    Drink(
-        "Pina Colada",
-        13,
-        "Słodki tropikalny koktajl z białego rumu, mleka kokosowego i soku ananasowego. Wakacyjny relaks.",
-        R.drawable.pina,
-        listOf(
-            "Zblenduj lód, rum, mleko kokosowe i sok ananasowy.",
-            "Przelej do szklanki.",
-            "Dekoruj ananasem i wisienką."
-        )
-    ),
-    Drink(
-        "Manhattan",
-        30,
-        "Wyrafinowany drink z whisky żytniej, czerwonego wermutu i angostury bitters. Symbol elegancji.",
-        R.drawable.manh,
-        listOf(
-            "W szklance z lodem zmieszaj whisky, wermut i bitters.",
-            "Mieszaj, przelej do kieliszka.",
-            "Dekoruj wisienką."
-        )
-    ),
-    Drink(
-        "Mai Tai",
-        26,
-        "Egzotyczny drink tiki z ciemnego rumu, limonki, likieru pomarańczowego i syropu migdałowego. Uczta dla zmysłów.",
-        R.drawable.maintai,
-        listOf(
-            "W shakerze z lodem zmieszaj rum, sok z limonki, likier i syrop.",
-            "Wstrząśnij, przelej na kruszony lód.",
-            "Dekoruj owocami i miętą."
-        )
-    ),
-    Drink(
-        "Cosmopolitan",
-        27,
-        "Stylowy koktajl z wódki cytrynowej, likieru pomarańczowego, żurawiny i limonki. Ikona kultury koktajlowej.",
-        R.drawable.cosmo,
-        listOf(
-            "Opcjonalnie obtocz brzeg kieliszka cukrem.",
-            "W shakerze z lodem zmieszaj wódkę, likier, sok żurawinowy i limonkę.",
-            "Wstrząśnij, przelej do kieliszka.",
-            "Dekoruj skórką pomarańczy."
-        )
-    ),
-    Drink(
-        "Long Island Iced Tea",
-        22,
-        "Mocny koktajl bez herbaty z wódki, rumu, ginu, tequili, likieru pomarańczowego i coli. Pić z umiarem.",
-        R.drawable.icetea,
-        listOf(
-            "W wysokiej szklance z lodem zmieszaj wódkę, rum, gin i tequilę.",
-            "Dodaj likier pomarańczowy i dopełnij colą.",
-            "Delikatnie zamieszaj, udekoruj cytryną."
-        )
-    ),
-    Drink(
-        "Zombie",
-        40,
-        "Legendarny, bardzo mocny drink tiki z różnymi rumami, likierami i sokami owocowymi. Dla poszukiwaczy wrażeń.",
-        R.drawable.zombie,
-        listOf(
-            "W shakerze z lodem zmieszaj rumy, sok z limonki i pomarańczowy, grenadinę i cynamon.",
-            "Wstrząśnij, przelej na kruszony lód.",
-            "Dekoruj owocami i miętą."
-        )
-    )
-)
